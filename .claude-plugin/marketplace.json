@@ -1,0 +1,56 @@
+{
+  "name": "cerodb",
+  "owner": {
+    "name": "cerodb"
+  },
+  "metadata": {
+    "description": "Marketplace for Claude-compatible plugins published by cerodb.",
+    "version": "0.1.0"
+  },
+  "plugins": [
+    {
+      "name": "spec-drive",
+      "source": "./plugins/spec-drive",
+      "description": "Spec-driven development workflow for coding CLIs with artifact-first handoff across phases.",
+      "version": "1.0.0",
+      "author": {
+        "name": "cerodb",
+        "url": "https://github.com/cerodb"
+      },
+      "keywords": [
+        "spec-driven",
+        "research",
+        "requirements",
+        "design",
+        "tasks",
+        "artifact-first",
+        "cross-cli"
+      ],
+      "category": "workflow",
+      "license": "MIT",
+      "strict": false
+    },
+    {
+      "name": "think-tank",
+      "source": "./plugins/think-tank",
+      "description": "Multi-agent collaboration plugin for debate, review, brainstorm, hypothesis, and cross-agent analysis.",
+      "version": "5.0.0",
+      "author": {
+        "name": "cerodb",
+        "url": "https://x.com/gabrielsimonet"
+      },
+      "keywords": [
+        "multi-agent",
+        "debate",
+        "review",
+        "brainstorm",
+        "hypothesis",
+        "cross-agent",
+        "collaboration"
+      ],
+      "category": "workflow",
+      "license": "MIT",
+      "strict": false
+    }
+  ]
+}
