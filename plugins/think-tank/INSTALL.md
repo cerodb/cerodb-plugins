@@ -30,8 +30,8 @@ claude plugin install /path/to/think-tank
 From inside Claude Code:
 
 ```
-/plugin marketplace add cerodb/think-tank
-/plugin install think-tank think-tank
+/plugin marketplace add cerodb/cerodb-plugins
+/plugin install think-tank@think-tank
 ```
 
 ## Commands
