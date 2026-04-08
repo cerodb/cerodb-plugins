@@ -50,6 +50,23 @@ Honest version: this repo is fully usable today, but only Claude-style runtimes 
 
 ## Install
 
+Preferred install path for Claude-compatible runtimes:
+
+- install from the `cerodb/cerodb-plugins` marketplace repo
+
+Current marketplace install:
+
+```text
+/plugin marketplace add cerodb/cerodb-plugins
+/plugin install spec-drive@cerodb
+```
+
+Current reality:
+
+- this source repo is still the development/source-of-truth repo
+- the marketplace/distribution path is now live
+- direct source-repo setup remains a developer/bootstrap path, not the preferred end-user install story
+
 ### 1. Clone
 
 ```bash
@@ -77,6 +94,11 @@ For runtime-specific install steps, see [INSTALL.md](./INSTALL.md).
 
 ## Install in Claude-Compatible Runtimes
 
+Install note:
+
+- the preferred install surface is the `cerodb/cerodb-plugins` marketplace
+- the instructions below are the developer/bootstrap path from source
+
 Point your plugin loader at this repository root.
 
 Relevant files:
@@ -86,7 +108,7 @@ Relevant files:
 - commands: `commands/`
 - agents: `agents/`
 
-If your Claude runtime expects plugins in a local plugin directory, install this repo there using whatever plugin mechanism that runtime already supports. This repo already includes the expected Claude-style metadata; no extra packaging step is required.
+If your Claude runtime expects plugins in a local plugin directory, install this repo there using whatever plugin mechanism that runtime already supports. This repo already includes Claude-style metadata, but this source-repo path should be treated as transitional until the marketplace path is the normal install flow.
 
 ## Install in Codex, Kiro, or Globant Coda
 
@@ -127,19 +149,22 @@ By default, projects live under:
       .spec-drive-state.json
 ```
 
-The project root can be overridden with:
+The project root can be overridden with the first config file found in this order:
 
 ```text
-~/.spec-drive-config.json
+.spec-drive-config.json           # at nearest git root, or cwd if no git root
+~/.config/spec-drive/config.json # or $XDG_CONFIG_HOME/spec-drive/config.json
 ```
 
 Example:
 
 ```json
 {
-  "projectRoot": "/absolute/path/to/spec-drive-projects"
+  "projectRoot": "./spec-drive-projects"
 }
 ```
+
+If `projectRoot` is relative, it is resolved relative to the config file location. That makes workspace-scoped configs portable across machines.
 
 ## Quick Start
 
