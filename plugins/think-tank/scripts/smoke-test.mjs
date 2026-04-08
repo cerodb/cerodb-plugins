@@ -384,7 +384,7 @@ console.log("\n[8] plugin.json");
   if (fileExists(".claude-plugin/plugin.json", "plugin.json exists")) {
     const pj = JSON.parse(readFileSync(pjPath, "utf-8"));
     check(pj.name === "think-tank", "plugin.json name is 'think-tank'");
-    check(pj.version === "1.1.1", "plugin.json version is '1.1.1'");
+    check(pj.version === "2.0.0", "plugin.json version is '2.0.0'");
     check(
       pj.description && pj.description.length > 10,
       "plugin.json has description"
