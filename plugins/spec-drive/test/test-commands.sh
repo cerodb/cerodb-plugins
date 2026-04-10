@@ -18,7 +18,7 @@ fail() {
   echo "  FAIL: $1"
 }
 
-COMMANDS=(new research requirements design tasks-cmd implement status cancel help)
+COMMANDS=(new research requirements design tasks-cmd implement status cancel help list switch refactor)
 
 echo "=== Spec-Drive Commands Test ==="
 
@@ -64,6 +64,144 @@ for cmd in "${COMMANDS[@]}"; do
     fail "$cmd missing allowed-tools field"
   fi
 done
+
+echo "-- Checking list command completeness..."
+LIST_FILE="commands/list.md"
+if [ -f "$LIST_FILE" ]; then
+  LIST_FM=$(sed -n '2,/^---$/p' "$LIST_FILE" | sed '$d')
+
+  if echo "$LIST_FM" | grep -q '^description:'; then
+    ok "list.md has description frontmatter key"
+  else
+    fail "list.md missing description frontmatter key"
+  fi
+
+  if echo "$LIST_FM" | grep -q '^argument-hint:'; then
+    ok "list.md has argument-hint frontmatter key"
+  else
+    fail "list.md missing argument-hint frontmatter key"
+  fi
+
+  if echo "$LIST_FM" | grep -q '^allowed-tools:'; then
+    ok "list.md has allowed-tools frontmatter key"
+  else
+    fail "list.md missing allowed-tools frontmatter key"
+  fi
+
+  if grep -q 'PROJECT_ROOT' "$LIST_FILE"; then
+    ok "list.md body references PROJECT_ROOT"
+  else
+    fail "list.md body does not reference PROJECT_ROOT"
+  fi
+
+  if grep -q 'phase' "$LIST_FILE"; then
+    ok "list.md body references phase output"
+  else
+    fail "list.md body does not reference phase output"
+  fi
+else
+  fail "commands/list.md does not exist"
+fi
+
+echo "-- Checking switch command completeness..."
+SWITCH_FILE="commands/switch.md"
+if [ -f "$SWITCH_FILE" ]; then
+  SWITCH_FM=$(sed -n '2,/^---$/p' "$SWITCH_FILE" | sed '$d')
+
+  if echo "$SWITCH_FM" | grep -q '^description:'; then
+    ok "switch.md has description frontmatter key"
+  else
+    fail "switch.md missing description frontmatter key"
+  fi
+
+  if echo "$SWITCH_FM" | grep -q '^argument-hint:'; then
+    ok "switch.md has argument-hint frontmatter key"
+  else
+    fail "switch.md missing argument-hint frontmatter key"
+  fi
+
+  if echo "$SWITCH_FM" | grep -q '^allowed-tools:'; then
+    ok "switch.md has allowed-tools frontmatter key"
+  else
+    fail "switch.md missing allowed-tools frontmatter key"
+  fi
+
+  if grep -q '~/.spec-drive-active.json' "$SWITCH_FILE"; then
+    ok "switch.md references ~/.spec-drive-active.json"
+  else
+    fail "switch.md does not reference ~/.spec-drive-active.json"
+  fi
+
+  if grep -q 'activePath' "$SWITCH_FILE" && grep -q 'switchedAt' "$SWITCH_FILE"; then
+    ok "switch.md documents registry format: activePath and switchedAt fields"
+  else
+    fail "switch.md missing registry format documentation (activePath/switchedAt)"
+  fi
+
+  if grep -q 'cwd' "$SWITCH_FILE"; then
+    ok "switch.md documents cwd fallback"
+  else
+    fail "switch.md missing cwd fallback documentation"
+  fi
+else
+  fail "commands/switch.md does not exist"
+fi
+
+echo "-- Checking refactor command completeness..."
+REFACTOR_FILE="commands/refactor.md"
+if [ -f "$REFACTOR_FILE" ]; then
+  REFACTOR_FM=$(sed -n '2,/^---$/p' "$REFACTOR_FILE" | sed '$d')
+
+  if echo "$REFACTOR_FM" | grep -q '^description:'; then
+    ok "refactor.md has description frontmatter key"
+  else
+    fail "refactor.md missing description frontmatter key"
+  fi
+
+  if echo "$REFACTOR_FM" | grep -q '^argument-hint:'; then
+    ok "refactor.md has argument-hint frontmatter key"
+  else
+    fail "refactor.md missing argument-hint frontmatter key"
+  fi
+
+  if echo "$REFACTOR_FM" | grep -q '^allowed-tools:'; then
+    ok "refactor.md has allowed-tools frontmatter key"
+  else
+    fail "refactor.md missing allowed-tools frontmatter key"
+  fi
+
+  if grep -q '\.progress\.md' "$REFACTOR_FILE"; then
+    ok "refactor.md references .progress.md as source for execution learnings"
+  else
+    fail "refactor.md does not reference .progress.md"
+  fi
+
+  if grep -q 'requirements.*design.*tasks' "$REFACTOR_FILE" || (grep -q 'requirements' "$REFACTOR_FILE" && grep -q 'design' "$REFACTOR_FILE" && grep -q 'tasks' "$REFACTOR_FILE"); then
+    ok "refactor.md specifies update sequence: requirements, design, tasks"
+  else
+    fail "refactor.md missing sequential update order (requirements -> design -> tasks)"
+  fi
+
+  if grep -q 'requirementsSha' "$REFACTOR_FILE" && grep -q 'designSha' "$REFACTOR_FILE"; then
+    ok "refactor.md references requirementsSha and designSha staleness detection"
+  else
+    fail "refactor.md missing requirementsSha/designSha staleness detection"
+  fi
+
+  if grep -q 'CHANGELOG' "$REFACTOR_FILE"; then
+    ok "refactor.md instructs recording changes in .progress.md CHANGELOG section"
+  else
+    fail "refactor.md missing CHANGELOG section reference in .progress.md"
+  fi
+
+  if grep -q 'phase-transitions' "$REFACTOR_FILE"; then
+    ok "refactor.md references phase-transitions.md for valid navigation"
+  else
+    fail "refactor.md does not reference phase-transitions.md"
+  fi
+else
+  fail "commands/refactor.md does not exist"
+fi
 
 echo "-- Checking cancel safety guidance..."
 if grep -q 'outside the approved Spec-Drive root' commands/cancel.md; then
