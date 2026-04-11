@@ -41,6 +41,22 @@ Additional plugins can be added later under:
 plugins/
   spec-drive/
   think-tank/
+skills/
+  <slug>/
+    SKILL.md
 ```
 
 Each plugin directory should contain a self-contained Claude-compatible plugin package.
+
+## ClawHub Skills
+
+Skills for the OpenClaw ClawHub registry live in `skills/`. This is a separate distribution channel from the Claude Code plugin channel.
+
+| Channel | Install mechanism | Users |
+|---------|-------------------|-------|
+| `plugins/` | `claude mcp add` or marketplace | Claude Code |
+| `skills/` | `clawhub install <slug>` | OpenClaw |
+
+Skills follow the wrapper-vs-native strategy documented in `spec/p322-adr-001-wrapper-vs-native.md`.
+
+See [`skills/README.md`](skills/README.md) for full documentation on the ClawHub distribution model.
