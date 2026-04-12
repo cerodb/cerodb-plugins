@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # test-skills-structure.sh
-# Validates that every skills/* subdirectory has a SKILL.md with required frontmatter.
+# Validates that every skills/* subdirectory has a SKILL.md with required frontmatter
+# and a .clawhub/meta.json publish manifest.
 # Exit 0 = all checks pass. Exit 1 = at least one check failed.
 
 set -euo pipefail
@@ -60,6 +61,26 @@ for skill_dir in "${skill_dirs[@]}"; do
     pass "$slug: SKILL.md has 'description:' frontmatter"
   else
     fail "$slug: SKILL.md missing 'description:' frontmatter"
+  fi
+
+  # AC6 (US6): .clawhub/meta.json publish manifest exists
+  clawhub_meta="$skill_dir/.clawhub/meta.json"
+  if [ ! -f "$clawhub_meta" ]; then
+    fail "$slug: .clawhub/meta.json not found"
+  else
+    pass "$slug: .clawhub/meta.json exists"
+    # Validate meta.json is valid JSON with required fields
+    if node -e "
+      const m = JSON.parse(require('fs').readFileSync('$clawhub_meta', 'utf8'));
+      if (!m.slug) throw new Error('missing slug');
+      if (!m.version) throw new Error('missing version');
+      if (!Array.isArray(m.tags) || m.tags.length === 0) throw new Error('missing tags array');
+      if (!m.tags.includes('latest')) throw new Error('tags must include latest');
+    " 2>/dev/null; then
+      pass "$slug: .clawhub/meta.json is valid (slug, version, tags present)"
+    else
+      fail "$slug: .clawhub/meta.json invalid JSON or missing required fields (slug, version, tags)"
+    fi
   fi
 done
 

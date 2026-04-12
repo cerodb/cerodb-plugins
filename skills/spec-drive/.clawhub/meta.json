@@ -1,0 +1,9 @@
+{
+  "slug": "spec-drive",
+  "name": "Spec Drive",
+  "version": "1.0.0",
+  "description": "Spec-driven development workflow: research, requirements, design, tasks, execution phases",
+  "author": "cerodb",
+  "tags": ["latest", "spec", "workflow", "development"],
+  "runtime": "openclaw"
+}

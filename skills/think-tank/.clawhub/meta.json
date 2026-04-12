@@ -1,0 +1,9 @@
+{
+  "slug": "think-tank",
+  "name": "Think Tank",
+  "version": "1.0.0",
+  "description": "Multi-agent collaboration: debate, review, brainstorm, hypothesis, cross-agent, and help modes for higher-quality analysis",
+  "author": "cerodb",
+  "tags": ["latest", "multi-agent", "debate", "review", "brainstorm"],
+  "runtime": "openclaw"
+}
