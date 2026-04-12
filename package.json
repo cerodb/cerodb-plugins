@@ -1,0 +1,12 @@
+{
+  "name": "cerodb-plugins",
+  "version": "1.0.0",
+  "private": true,
+  "description": "ClawHub skill packages: think-tank and spec-drive wrappers",
+  "scripts": {
+    "test:structure": "bash test/test-skills-structure.sh",
+    "test:skills": "bash test/test-skills-e2e.sh",
+    "test": "bash test/test-skills-structure.sh && bash test/test-skills-e2e.sh",
+    "dry-run": "node scripts/dry-run-local.mjs"
+  }
+}
