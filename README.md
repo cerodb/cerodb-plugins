@@ -83,6 +83,15 @@ clawhub install think-tank
 
 Spec-driven development workflow covering research, requirements, design, tasks, and execution phases.
 
+Install the plugin first in a Claude-compatible runtime:
+
+```text
+/plugin marketplace add cerodb/cerodb-plugins
+/plugin install spec-drive@cerodb
+```
+
+Optional ClawHub wrapper skill:
+
 ```bash
 clawhub install spec-drive
 ```
