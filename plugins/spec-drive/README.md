@@ -31,10 +31,27 @@ This repo is not equally automatic everywhere.
 
 Honest version: this repo is fully usable today, but only Claude-style runtimes have native plugin metadata in-tree.
 
+## macOS Compatibility
+
+Spec-Drive v1.1 is tested on both Linux and macOS via GitHub Actions CI.
+
+All shell scripts avoid GNU-only extensions:
+
+- `readlink -f` replaced with a portable `portable_realpath()` helper (python3 → realpath → cd/pwd -P fallback)
+- `find -mmin` replaced with a portable mtime check (python3 → stat -c %Y on Linux → stat -f %m on macOS)
+
+Prerequisites on macOS: `bash`, `git`, `jq`. Install `jq` via Homebrew (`brew install jq`) if not already present.
+
+## Release Notes
+
+- Current release: `v1.2.0` (2026-04-17)
+- This release packages the successful P336 calibration pass: direct `tasks` command surface, tighter coordinator conflict scoring, and restored design/task compression.
+
 ## Validation Status
 
-- Local shell validation passes with `npm test` on Linux.
-- The shell test suite is intended to stay POSIX-friendly so it can run on macOS too.
+- Local shell validation passes with `npm test` on Linux and macOS.
+- The shell test suite is POSIX-friendly and runs on both platforms.
+- CI runs on `ubuntu-latest` and `macos-latest` for every push and pull request.
 - This repo does **not** yet ship native install adapters for Codex, Kiro, or Globant Coda.
 - Cross-CLI support today means:
   - portable artifacts
@@ -166,12 +183,35 @@ Example:
 
 If `projectRoot` is relative, it is resolved relative to the config file location. That makes workspace-scoped configs portable across machines.
 
+## Commands
+
+| Command | Description |
+|---|---|
+| `/spec-drive:new` | Create a new spec-driven project with `idea.md` and start research |
+| `/spec-drive:research` | Run or re-run the research phase |
+| `/spec-drive:requirements` | Generate structured requirements from research |
+| `/spec-drive:design` | Generate technical design from requirements |
+| `/spec-drive:tasks` | Generate implementation task list from design |
+| `/spec-drive:implement` | Start or resume autonomous task execution loop |
+| `/spec-drive:status` | Show current phase, task progress, and recent activity |
+| `/spec-drive:list` | List all spec-drive projects with phase and last-activity |
+| `/spec-drive:switch` | Switch the active spec-drive project |
+| `/spec-drive:refactor` | Iterate coherently on spec artifacts after discovering design flaws during execution |
+| `/spec-drive:cancel` | Cancel and optionally remove the active spec project |
+| `/spec-drive:help` | Show help for spec-drive commands and workflow |
+
 ## Quick Start
 
 Start from a new project:
 
 ```text
 /spec-drive:new my-feature Build a small feature that does X
+```
+
+If the project needs a wider first pass:
+
+```text
+/spec-drive:new my-feature Build a small feature that does X --deep
 ```
 
 Then continue phase by phase:
@@ -190,11 +230,30 @@ Or use auto mode:
 /spec-drive:new my-feature Build a small feature that does X --auto
 ```
 
+## Small but Important Runtime Notes
+
+- `--deep` asks the researcher for a broader discovery pass before requirements.
+- `/spec-drive:research` now performs a lightweight coordinator preflight before delegating research.
+- `/spec-drive:requirements` can pause for targeted clarification instead of silently guessing when research leaves important ambiguity unresolved.
+
 Important:
 
 - `--auto` does not mean "write idea, research, requirements, design, and tasks in one blind burst"
 - definition phases still pause for review
 - auto mode becomes autonomous only after `tasks.md` exists and execution begins
+
+If you have multiple projects, use `list` and `switch` to navigate:
+
+```text
+/spec-drive:list
+/spec-drive:switch
+```
+
+If you discover design flaws mid-execution, use `refactor` to coherently update spec artifacts:
+
+```text
+/spec-drive:refactor
+```
 
 ## Safety Notes
 

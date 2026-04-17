@@ -1,0 +1,13 @@
+{
+  "source": "spec",
+  "name": "p283-spec-drive",
+  "basePath": "./specs/p283-spec-drive",
+  "phase": "execution",
+  "taskIndex": 0,
+  "totalTasks": 48,
+  "taskIteration": 1,
+  "maxTaskIterations": 5,
+  "globalIteration": 1,
+  "maxGlobalIterations": 100,
+  "awaitingApproval": false
+}
