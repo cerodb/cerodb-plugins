@@ -12,7 +12,7 @@
       "name": "spec-drive",
       "source": "./plugins/spec-drive",
       "description": "Spec-driven development workflow for coding CLIs with artifact-first handoff across phases.",
-      "version": "1.2.0",
+      "version": "1.2.1",
       "author": {
         "name": "cerodb",
         "url": "https://github.com/cerodb"
