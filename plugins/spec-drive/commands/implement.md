@@ -9,7 +9,7 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep, Agent]
 The coordinator command. Orchestrates autonomous task execution by delegating each task to the appropriate agent. Never implements tasks directly.
 
 <mandatory>
-This command follows the delegation principle: it NEVER implements tasks directly. It ALWAYS delegates via the Task tool (Agent invocation). The coordinator reads state, determines the next action, delegates, and updates state. That is all.
+This command follows the delegation principle: it NEVER implements task code directly. It delegates implementation to an executor, then owns all trusted git/state transitions itself. The coordinator reads state, preflights task files, delegates implementation, re-runs Verify, commits implementation files, commits Spec-Drive tracking, and updates state.
 </mandatory>
 
 ## When Invoked
@@ -115,31 +115,127 @@ Read `{basePath}/tasks.md`. Extract the task block at position `taskIndex`:
 
 If `taskIndex >= totalTasks`, go to Step 9 (all tasks complete).
 
-### Step 6: Detect Task Type and Dispatch
+### Step 6: Coordinator Pre-flight and Dispatch
 
-Inspect the task description to determine the type:
+The coordinator owns git and Spec-Drive tracking state. Executors are pure implementers.
+
+Before dispatching a Regular Task or `[P]` task:
+
+1. Parse the task block's `Files` field into explicit repo-relative paths.
+2. Check whether any listed file already has uncommitted changes (`git status --porcelain -- <files>`).
+3. If any listed file is dirty before dispatch, stop before invoking an executor:
+   ```
+   TASK_BLOCKED: dirty task files before dispatch: <paths>
+   ```
+4. Do not stash, reset, clean, or overwrite dirty user work automatically.
+
+This dirty-file check moved here from the executors so every dispatch mechanism has the same trusted preflight.
+
+#### Detect Task Type and Dispatch
+
+Inspect the task description to determine the type.
+
+#### Resolve Model Tier (pre-dispatch, Regular Tasks only)
+
+Before delegating a Regular Task, resolve its `model:` tier to a concrete dispatch mechanism:
+
+1. Parse the `model:` field from the task block (e.g. `model: standard`, placed after `Traces:` and
+   before `Cwd:`). If the field is absent, treat the tier as empty -- the resolver's inherit fallback
+   handles this case.
+2. Run the resolver via the Bash tool as `"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/resolve-model.sh" <tier>`.
+   `CLAUDE_PLUGIN_ROOT` points at this plugin's root. Do NOT use a bare relative path such as
+   `hooks/scripts/resolve-model.sh`: the coordinator's working directory is the user's project, not the
+   plugin, so a relative path is not found and every task would silently fall back to `inherit`. If
+   `CLAUDE_PLUGIN_ROOT` is not set in your runtime, resolve the plugin root from the path of this
+   command file (same fallback contract as `agents/coordinator.md`). `<tier>` may be empty for tasks
+   with no `model:` field. Capture stdout and parse the three `key=value` lines it always emits:
+   - `mechanism=` -- one of `agent`, `subprocess`, `inherit`
+   - `model=` -- concrete model id (set only when `mechanism=agent`)
+   - `cmd=` -- command template with `{prompt}` placeholder (set only when
+     `mechanism=subprocess`; shipped `{MODEL}`/`{CMD}` profile stubs must be overridden before use)
+3. Branch the dispatch on `mechanism`:
+   - **`mechanism=agent`** -- invoke `spec-drive:executor` via the Agent tool WITH the resolved
+     `model` added as a parameter: `Agent(subagent_type: "spec-drive:executor", model: <resolved
+     model>, prompt: <executor contract>)`. Same call as the inherit case below, one field added.
+   - **`mechanism=subprocess`** -- read `agents/executor-subprocess.md` and run the profile's `cmd`
+     template via the Bash tool, substituting `{prompt}` with the CLI-neutral subprocess implementer
+     contract plus the exact "Execute this task: basePath / Task Block / Progress" text used in the
+     Agent-tool prompt below. Quote or otherwise pass the substituted prompt as one argument/stdin
+     according to the runtime's command template. Capture the subprocess's stdout and parse the
+     trailing `TASK_COMPLETE` / `TASK_BLOCKED` line exactly as Step 7 parses agent results today.
+   - **`mechanism=inherit`** -- current behavior: invoke `spec-drive:executor` via the Agent tool with
+     no `model` parameter (the agent runs on whatever model the coordinator itself is running on).
+     This is the fallback for tasks with no `model:` field and unknown/unresolvable tiers.
+     Missing resolver tooling may still fall back to inherit, but explicit resolver configuration errors
+     such as `error=unresolved_placeholder` must stop dispatch with the resolver stderr so the user can
+     fix `profiles.local.json` instead of running a literal placeholder command.
 
 #### Regular Task (no marker)
 
-Delegate to the `spec-drive:executor` agent via Task tool:
+Delegate to the `spec-drive:executor` agent via Task tool, dispatched per the resolved mechanism from
+the resolution step above:
 
-```
-Task tool: spec-drive:executor
+- **`mechanism=agent`**:
+  ```
+  Agent tool: spec-drive:executor
+  model: <resolved model>
 
-Execute this task:
+  Execute this task:
 
-basePath: {basePath}
+  basePath: {basePath}
 
-Task Block:
-{full task block text}
+  Task Block:
+  {full task block text}
 
-Progress:
-{contents of basePath/.progress.md}
-```
+  Progress:
+  {contents of basePath/.progress.md}
+  ```
+
+- **`mechanism=subprocess`**:
+  ```
+  Bash: <profile cmd template, {prompt} substituted>
+
+  where {prompt} =
+  """
+  <CLI-neutral subprocess implementer contract (agents/executor-subprocess.md instructions)>
+
+  Execute this task:
+
+  basePath: {basePath}
+
+  Task Block:
+  {full task block text}
+
+  Progress:
+  {contents of basePath/.progress.md}
+  """
+  ```
+  Parse the subprocess's stdout for a trailing `TASK_COMPLETE` or `TASK_BLOCKED` line, same as Step 7.
+  Do not send `agents/executor.md` verbatim to subprocess runtimes; that contract is optimized for
+  Claude Code's Agent-tool execution surface and may mention tool names or delegation patterns that
+  other CLIs do not implement.
+
+- **`mechanism=inherit`** (no `model:` field, unknown tier, or resolver failure -- current/default
+  behavior):
+  ```
+  Task tool: spec-drive:executor
+
+  Execute this task:
+
+  basePath: {basePath}
+
+  Task Block:
+  {full task block text}
+
+  Progress:
+  {contents of basePath/.progress.md}
+  ```
 
 #### [VERIFY] Task
 
-Delegate to the `spec-drive:qa-engineer` agent via Task tool:
+`[VERIFY]` tasks are NOT routed through `resolve-model.sh` (MVP scope) -- they always run on the
+session model, regardless of any `model:` field on the task block. Delegate to the
+`spec-drive:qa-engineer` agent via Task tool:
 
 ```
 Task tool: spec-drive:qa-engineer
@@ -185,27 +281,60 @@ When the current task has a `[P]` marker:
      "isParallel": true
    }
    ```
-5. After ALL parallel tasks complete, merge isolated progress files into `.progress.md`
-6. Clear `parallelGroup` from state
-7. Advance `taskIndex` past the entire batch
+5. After each parallel executor returns `TASK_COMPLETE`, the coordinator serializes trusted post-processing under the existing `.execution-state.lock`:
+   - re-run that task's Verify command in the trusted coordinator context
+   - `git add` only that task's declared Files
+   - `git commit -m "<exact Commit message>"`
+   - update that task's checkbox / `model_used:` field and merge its isolated progress notes
+6. After ALL parallel tasks complete and their implementation commits succeed, commit the merged tracking update separately
+7. Clear `parallelGroup` from state
+8. Advance `taskIndex` past the entire batch
 
-### Step 7: Handle Agent Result
+### Step 7: Handle Executor Result and Own Git
 
-After the delegated agent completes:
+After the delegated executor completes, parse the final decisive line from its response/stdout:
+
+- `TASK_COMPLETE`
+- `TASK_BLOCKED: <reason>`
+- `VERIFICATION_PASS` / `VERIFICATION_FAIL` for QA tasks
 
 #### On TASK_COMPLETE (or VERIFICATION_PASS)
 
-1. Advance `taskIndex` by 1 (or by batch size for parallel)
-2. Reset `taskIteration` to 1
-3. Increment `globalIteration` by 1
-4. Record success in `taskResults`:
+The coordinator must perform the trusted post-processing. Do not trust the executor's success signal alone.
+
+1. Re-run the task's exact Verify command in the trusted coordinator context. This is the authoritative check before any commit.
+2. If Verify fails, treat the task as failed: append the failure to `.progress.md`, increment iteration counters, and retry/stop per limits below. Do not commit.
+3. Stage ONLY the task's declared `Files` paths:
+   ```bash
+   git add <files from Files field>
+   ```
+4. Commit implementation changes with the exact message from the task's `Commit` line:
+   ```bash
+   git commit -m "<exact Commit message>"
+   ```
+   If the task explicitly says "only if fixes needed" and no files changed, skip only this implementation commit and continue to tracking.
+5. Mark the task as `[x]` in `{basePath}/tasks.md`.
+6. Append `model_used: <tier-or-mechanism>` to the completed task's block, where the value reflects the tier/mechanism that actually executed the implementation.
+7. Update the progress file (`progressFile` if provided, else `{basePath}/.progress.md`):
+   - add task to Completed Tasks
+   - set Current Task to "Awaiting next task"
+   - append concrete learnings from the executor output when useful
+8. Commit tracking state separately:
+   ```bash
+   git add {basePath}/tasks.md {basePath}/<progressFile or .progress.md>
+   git commit -m "chore(spec-drive): update progress for task <task-id>"
+   ```
+9. Advance `taskIndex` by 1 (or by batch size for parallel)
+10. Reset `taskIteration` to 1
+11. Increment `globalIteration` by 1
+12. Record success in `taskResults`:
    ```json
    { "<taskIndex>": { "status": "success" } }
    ```
-5. Write updated state to `.spec-drive-state.json`
-6. Loop back to Step 5 for the next task
+13. Write updated state to `.spec-drive-state.json`
+14. Loop back to Step 5 for the next task
 
-#### On Failure (or VERIFICATION_FAIL)
+#### On TASK_BLOCKED / Failure (or VERIFICATION_FAIL)
 
 1. Increment `taskIteration` by 1
 2. Increment `globalIteration` by 1

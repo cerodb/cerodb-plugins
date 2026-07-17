@@ -1,5 +1,56 @@
 # Changelog
 
+## v1.3.2 — 2026-07-17
+
+Router activation fix — the model router now actually engages in real runs.
+
+### Fixed
+- `commands/implement.md` invoked `hooks/scripts/resolve-model.sh` with a bare relative path. Because
+  the coordinator's working directory is the user's project (not the plugin), the script was never
+  found and every task silently fell back to the `inherit` mechanism — i.e. the tier router was
+  effectively dead code in v1.3.0/v1.3.1. Now invoked via `"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/resolve-model.sh"`
+  with the same fallback contract as `agents/coordinator.md`. Caught by a live end-to-end run, not by
+  unit tests (which called the resolver with an explicit path).
+
+## v1.3.1 — 2026-07-17
+
+Cross-CLI subprocess reality check release.
+
+### Highlights
+
+- replaced Codex `{MODEL}` placeholders with concrete Dell-verified model IDs: `gpt-5.4-mini`, `gpt-5.4`, `gpt-5.5`, and `gpt-5.6-sol`
+- added `agents/executor-subprocess.md`, a CLI-neutral subprocess implementer contract used by `/spec-drive:implement`
+- refactored executor contracts so executors are pure implementers and the coordinator owns git commits/tracking
+- kept the Coda profile as a documented stub for private/local override on the Mac
+- verified real subprocess invocation paths and canary task execution for Codex and Claude frontier under sandboxed subprocess profiles, including coordinator-owned exact commits after `TASK_COMPLETE` parser signals
+
+### Scope notes
+
+- Codex subprocess routing now works out of the box on runtimes with the listed GPT model IDs available.
+- Coda and generic default subprocess profiles still require local overrides because their model IDs/commands are deployment-private.
+- Subprocess stdout must end in `TASK_COMPLETE` or `TASK_BLOCKED: <reason>` so the existing implement parser can consume it unchanged.
+- Public profiles must not ship a full-access sandbox; `test/test-public-clean.sh` now guards against that regression.
+
+
+## v1.3.0 — 2026-07-16
+
+Adaptive model router release for spec execution.
+
+### Highlights
+
+- added optional `model:` and `model_used:` task metadata while preserving existing task files
+- introduced abstract routing tiers (`light`, `standard`, `advanced`, `frontier`) with Claude Code routing and generic cross-CLI profile stubs
+- wired `/spec-drive:implement` dispatch through the model resolver with safe inherit fallbacks and fail-fast errors for unresolved subprocess placeholders
+- added routing reference fixtures as planner calibration examples, legacy no-model compatibility coverage, schema-stability checks, and a public-repo cleanliness gate
+- kept private/local provider details out of the public plugin; Codex/Coda/default subprocess profiles require local `profiles.local.json` overrides before use
+
+### Scope notes
+
+- Out-of-box automatic model routing is supported for Claude Code agent profiles.
+- Codex, Coda, and default subprocess profiles are scaffolding stubs; users must provide concrete local commands without `{MODEL}` or `{CMD}`.
+- Routing quality remains LLM-driven. The fixtures calibrate the planner prompt and are checked for reference consistency, not deterministic LLM-quality scoring.
+- `claude -p --help` confirms `--effort` is accepted for the shipped Claude Code frontier subprocess command.
+
 ## v1.2.1 — 2026-04-18
 
 Post-QA polish release after the v1.2.0 calibration wave.
