@@ -22,7 +22,7 @@ echo "=== Spec-Drive Public Cleanliness Test ==="
 
 # Build private-token patterns in pieces so the cleanliness test does not match itself.
 pat_backend="globant"'_dgx'
-pat_model='GLM-''4\.6'
+pat_model='GL''M-4\.6'
 pat_path='Library/''Globant'
 pat_vendor_upper='GE''AI'
 pat_vendor_lower='ge''ai'
